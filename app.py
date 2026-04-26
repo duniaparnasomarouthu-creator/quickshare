@@ -1,32 +1,23 @@
-from flask import Flask, request, render_template, send_from_directory
+from flask import Flask, render_template, request
 import os
-import uuid
 
 app = Flask(__name__)
-UPLOAD_FOLDER = 'uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Create uploads folder if not exists
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+UPLOAD_FOLDER = "static/uploads"
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
-@app.route('/')
+@app.route("/")
 def home():
-    return render_template('index.html')
+    return render_template("index.html")
 
-@app.route('/upload', methods=['POST'])
+@app.route("/upload", methods=["POST"])
 def upload():
-    file = request.files['image']
-    if file:
-        filename = str(uuid.uuid4()) + "_" + file.filename
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        link = f"http://127.0.0.1:5000/image/{filename}"
-        return render_template('result.html', link=link, filename=filename)
-    return "No file selected"
+    file = request.files["file"]
 
-@app.route('/image/<filename>')
-def image(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    filepath = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
+    file.save(filepath)
+
+    return render_template("result.html")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
