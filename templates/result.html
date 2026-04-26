@@ -1,74 +1,56 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Image Uploaded</title>
+    <title>Upload Result</title>
     <style>
         body {
             font-family: Arial;
-            background: linear-gradient(to right, #4facfe, #00f2fe);
+            background: #f2f6ff;
             text-align: center;
-            margin-top: 100px;
-            color: white;
+            padding: 60px;
         }
 
         .box {
             background: white;
-            color: black;
             padding: 30px;
-            border-radius: 10px;
+            width: 400px;
+            margin: auto;
+            border-radius: 12px;
+            box-shadow: 0px 0px 10px gray;
+        }
+
+        h1 {
+            color: #27ae60;
+        }
+
+        p {
+            color: #555;
+        }
+
+        a {
             display: inline-block;
-        }
-
-        input {
-            width: 80%;
-            padding: 10px;
-            margin: 10px;
-        }
-
-        button {
+            margin-top: 20px;
             padding: 10px 20px;
-            background: #4facfe;
-            border: none;
+            background: #3498db;
             color: white;
+            text-decoration: none;
             border-radius: 5px;
-            cursor: pointer;
         }
 
-        button:hover {
-            background: #00c6ff;
+        a:hover {
+            background: #2980b9;
         }
     </style>
-
-    <script>
-        function copyLink() {
-            var copyText = document.getElementById("link");
-            copyText.select();
-            copyText.setSelectionRange(0, 99999);
-            document.execCommand("copy");
-            alert("Link copied!");
-        }
-    </script>
 </head>
 
 <body>
 
-<div class="box">
-    <h2>✅ Upload Successful</h2>
-    <p>Copy and share your link</p>
+    <div class="box">
+        <h1>Upload Successful 🎉</h1>
+        <p>Your file has been uploaded successfully.</p>
 
-    <input type="text" value="{{ link }}" id="link" readonly>
-
-    <br>
-    <button onclick="copyLink()">Copy Link</button>
-
-    <br><br>
-
-    <h3>Preview:</h3>
-    <img src="/image/{{ filename }}" width="300">
-
-    <br><br>
-    <a href="/">⬅ Upload Another</a>
-</div>
+        <a href="/">Upload Another File</a>
+    </div>
 
 </body>
 </html>
