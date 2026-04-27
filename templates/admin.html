@@ -3,86 +3,22 @@
 <head>
     <title>Admin Dashboard</title>
     <style>
-        body {
-            font-family: Arial;
-            background: #f4f6f9;
-            margin: 0;
-        }
+        body { font-family: Arial; background:#f4f6f9; margin:0; }
+        .header { background:#1e2a38; color:white; padding:20px; text-align:center; }
+        .container { padding:20px; }
 
-        .header {
-            background: #1e2a38;
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }
+        .cards { display:flex; gap:20px; flex-wrap:wrap; }
+        .card { background:white; padding:20px; flex:1; min-width:200px;
+                border-radius:10px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
 
-        .container {
-            padding: 20px;
-        }
+        table { width:100%; margin-top:20px; background:white;
+                border-collapse:collapse; border-radius:10px; overflow:hidden; }
 
-        .cards {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-        }
+        th,td { padding:10px; border-bottom:1px solid #ddd; text-align:center; }
+        th { background:#007bff; color:white; }
 
-        .card {
-            background: white;
-            padding: 20px;
-            flex: 1;
-            min-width: 200px;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-
-        .card h2 {
-            margin: 0;
-            color: #333;
-        }
-
-        .card p {
-            font-size: 24px;
-            margin: 10px 0 0;
-            color: #007bff;
-            font-weight: bold;
-        }
-
-        table {
-            width: 100%;
-            margin-top: 30px;
-            border-collapse: collapse;
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        th, td {
-            padding: 12px;
-            border-bottom: 1px solid #ddd;
-            text-align: center;
-        }
-
-        th {
-            background: #007bff;
-            color: white;
-        }
-
-        .logout {
-            position: absolute;
-            right: 20px;
-            top: 20px;
-            background: red;
-            color: white;
-            padding: 10px 15px;
-            text-decoration: none;
-            border-radius: 5px;
-        }
-
-        .logout:hover {
-            background: darkred;
-        }
+        .logout { position:absolute; right:20px; top:20px;
+                  background:red; color:white; padding:10px; text-decoration:none; }
     </style>
 </head>
 
@@ -95,34 +31,28 @@
 
 <div class="container">
 
-    <!-- STATS CARDS -->
     <div class="cards">
         <div class="card">
             <h2>Total Users</h2>
-            <p>{{ total_users }}</p>
+            <h1>{{ total_users }}</h1>
         </div>
 
         <div class="card">
             <h2>Average Rating</h2>
-            <p>{{ avg_rating }}</p>
+            <h1>{{ avg_rating }}</h1>
         </div>
 
         <div class="card">
             <h2>Total Ratings</h2>
-            <p>{{ ratings|length }}</p>
+            <h1>{{ ratings|length if ratings else 0 }}</h1>
         </div>
     </div>
 
-    <!-- USERS TABLE -->
-    <h2 style="margin-top:30px;">👥 Users List</h2>
+    <h2>👥 Users</h2>
     <table>
         <tr>
-            <th>Username</th>
-            <th>Email</th>
-            <th>Age</th>
-            <th>Gender</th>
+            <th>Username</th><th>Email</th><th>Age</th><th>Gender</th>
         </tr>
-
         {% for u in users %}
         <tr>
             <td>{{ u[0] }}</td>
@@ -133,14 +63,11 @@
         {% endfor %}
     </table>
 
-    <!-- RATINGS TABLE -->
-    <h2 style="margin-top:30px;">⭐ Ratings</h2>
+    <h2>⭐ Ratings</h2>
     <table>
         <tr>
-            <th>User</th>
-            <th>Rating</th>
+            <th>User</th><th>Rating</th>
         </tr>
-
         {% for r in ratings %}
         <tr>
             <td>{{ r[0] }}</td>
