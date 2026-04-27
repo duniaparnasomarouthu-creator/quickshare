@@ -2,103 +2,47 @@
 <html>
 <head>
 <title>Dashboard</title>
-
-<style>
-body{
-    font-family:Arial;
-    background:#f4f4f4;
-}
-
-button{
-    cursor:pointer;
-}
-</style>
-
 </head>
 
-<body>
+<body style="font-family:Arial;text-align:center;background:#f4f4f4;">
 
-<h1 style="text-align:center;">📸 My Image Project Dashboard</h1>
+<h1>My Feed 📸</h1>
 
-<!-- 🔥 INTERVIEW DEMO BUTTON -->
-<div style="text-align:center;margin:20px;">
+<!-- UPLOAD FORM -->
+<form action="/upload" method="POST" enctype="multipart/form-data"
+style="margin:20px;">
 
-<button onclick="showDemo()"
-style="padding:12px 25px;background:#ff5722;color:white;border:none;border-radius:6px;">
-🎯 Show Project Demo (Interview Mode)
-</button>
+<input type="text" name="message" placeholder="Write something..." required>
+<br><br>
 
-</div>
+<input type="file" name="file" required>
+<br><br>
 
-<!-- 📦 DEMO BOX -->
-<div id="demoBox"
-style="display:none;background:#111;color:white;padding:20px;margin:20px auto;width:80%;border-radius:10px;">
+<button>Post</button>
 
-<h2>🚀 Project Overview</h2>
-
-<p>✔ Secure Login System</p>
-<p>✔ Multi-user Registration</p>
-<p>✔ Image Upload & Gallery</p>
-<p>✔ Password Encryption (Werkzeug)</p>
-<p>✔ Download Feature</p>
-<p>✔ Database (SQLite)</p>
-
-<hr>
-
-<h3>🧠 Tech Stack</h3>
-<p>Flask + SQLite + HTML + CSS + Python</p>
-
-<hr>
-
-<h3>💡 Project Idea</h3>
-<p>A secure image management system where users can upload, view, and download images after login.</p>
-
-</div>
-
-<!-- 📤 UPLOAD SECTION -->
-<div style="text-align:center;margin:20px;">
-
-<form action="/upload" method="POST" enctype="multipart/form-data">
-    <input type="file" name="file" required>
-    <button style="padding:8px 15px;">Upload</button>
 </form>
 
-</div>
-
 <hr>
 
-<!-- 🖼 IMAGE GRID -->
+<!-- FEED -->
 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:20px;">
 
-{% for img in images %}
-<div style="background:white;padding:10px;border-radius:8px;text-align:center;">
+{% for post in posts %}
+<div style="background:white;padding:10px;border-radius:10px;">
 
-    <img src="{{ url_for('static', filename='uploads/' + img[0]) }}"
+    <p>{{ post[1] }}</p>
+
+    <img src="{{ url_for('static', filename='uploads/' + post[0]) }}"
     style="width:100%;border-radius:5px;">
 
     <br><br>
 
-    <a href="/download/{{ img[0] }}">
-        ⬇ Download
-    </a>
+    <a href="/download/{{ post[0] }}">⬇ Download</a>
 
 </div>
 {% endfor %}
 
 </div>
-
-<!-- 🔧 SCRIPT -->
-<script>
-function showDemo(){
-    var box = document.getElementById("demoBox");
-
-    if(box.style.display === "none"){
-        box.style.display = "block";
-    } else {
-        box.style.display = "none";
-    }
-}
-</script>
 
 </body>
 </html>
