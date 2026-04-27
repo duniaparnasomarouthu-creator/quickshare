@@ -1,63 +1,21 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Image Upload System</title>
-    <style>
-        body {
-            font-family: Arial;
-            background: #f2f6ff;
-            text-align: center;
-            padding: 60px;
-        }
-
-        .box {
-            background: white;
-            padding: 30px;
-            width: 400px;
-            margin: auto;
-            border-radius: 12px;
-            box-shadow: 0px 0px 10px gray;
-        }
-
-        h1 {
-            color: #2c3e50;
-        }
-
-        input {
-            margin-top: 20px;
-            padding: 10px;
-            width: 90%;
-        }
-
-        button {
-            margin-top: 20px;
-            padding: 10px;
-            width: 90%;
-            background: #3498db;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #2980b9;
-        }
-    </style>
+    <title>Secret Image Upload</title>
 </head>
+<body style="text-align:center;font-family:Arial;padding:50px;">
 
-<body>
+<h1>Upload Image 🔐</h1>
 
-<div class="box">
-    <h1>Image Upload System</h1>
+<form action="/upload" method="POST" enctype="multipart/form-data">
+    <input type="file" name="file" required>
+    <br><br>
+    <button type="submit">Upload</button>
+</form>
 
-    <form action="/upload" method="POST" enctype="multipart/form-data">
+<br><br>
 
-        <input type="file" name="file" required>
-
-        <button type="submit">Upload Image</button>
-
-    </form>
-</div>
+<a href="/view">View Image using Code</a>
 
 </body>
 </html>
