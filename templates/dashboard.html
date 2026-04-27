@@ -4,17 +4,14 @@
 <title>Dashboard</title>
 </head>
 
-<body style="font-family:Arial;text-align:center;background:#f4f4f4;">
+<body style="font-family:Arial;text-align:center;">
 
 <h1>My Feed 📸</h1>
 
 <form action="/upload" method="POST" enctype="multipart/form-data">
 
-<input type="text" name="message" placeholder="Write something..." required>
-<br><br>
-
-<input type="file" name="file" required>
-<br><br>
+<input type="text" name="message" placeholder="Write message" required><br><br>
+<input type="file" name="file" required><br><br>
 
 <button>Post</button>
 
@@ -22,24 +19,40 @@
 
 <hr>
 
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:20px;">
+<h3>⭐ Rate Us</h3>
+
+<form action="/rate" method="POST">
+<select name="rating">
+<option>1</option>
+<option>2</option>
+<option>3</option>
+<option>4</option>
+<option>5</option>
+</select>
+<button>Submit</button>
+</form>
+
+<hr>
+
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
 
 {% for post in posts %}
-<div style="background:white;padding:10px;border-radius:10px;">
+<div style="border:1px solid #ccc;padding:10px;">
 
 <p>{{ post[1] }}</p>
 
-<img src="{{ url_for('static', filename='uploads/' + post[0]) }}"
-style="width:100%;border-radius:5px;">
+<img src="{{ url_for('static', filename='uploads/' + post[0]) }}" width="200">
 
-<br><br>
-
-<a href="/download/{{ post[0] }}">⬇ Download</a>
+<br>
+<a href="/download/{{ post[0] }}">Download</a>
 
 </div>
 {% endfor %}
 
 </div>
+
+<br>
+<a href="/admin">Go to Admin Panel</a>
 
 </body>
 </html>
