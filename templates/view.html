@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>View Image</title>
+</head>
+<body style="text-align:center;font-family:Arial;padding:50px;">
+
+    <h1>Enter Secret Code 🔐</h1>
+
+    <form method="POST">
+        <input type="text" name="code" placeholder="Enter Code" required>
+        <button type="submit">View</button>
+    </form>
+
+    <br><br>
+
+    {% if image_url %}
+        <h3>Image Found 📸</h3>
+        <img src="{{ url_for('static', filename=image_url) }}" width="300">
+    {% endif %}
+
+    {% if error %}
+        <p style="color:red;">{{ error }}</p>
+    {% endif %}
+
+    <br><br>
+
+    <a href="/">Back</a>
+
+</body>
+</html>
