@@ -3,29 +3,12 @@
 <head>
 <title>Dashboard</title>
 </head>
-<body style="font-family:Arial;background:#fafafa;">
 
-<h2 style="text-align:center;">My Gallery 📸</h2>
+<body style="font-family:Arial;text-align:center;">
 
-<div style="text-align:center;">
-<form action="/upload" method="POST" enctype="multipart/form-data">
-    <input type="file" name="file">
-    <button>Upload</button>
-</form>
-</div>
+<h1>Welcome {{ user }} 🎉</h1>
 
-<hr>
-
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:20px;">
-
-{% for img in images %}
-<div style="background:white;padding:10px;border:1px solid #ddd;">
-    <img src="{{ url_for('static', filename='uploads/' + img[0]) }}" style="width:100%;">
-    <a href="/download/{{ img[0] }}">Download ⬇️</a>
-</div>
-{% endfor %}
-
-</div>
+<a href="/logout">Logout</a>
 
 </body>
 </html>
