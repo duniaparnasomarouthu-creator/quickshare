@@ -1,14 +1,11 @@
-from flask import Flask, render_template, request, redirect, session, send_from_directory
-import os, sqlite3, time
+from flask import Flask, render_template, request, redirect, session
+import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.secret_key = "secret"
 
-UPLOAD_FOLDER = "static/uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-# ---------------- DB ----------------
+# DB INIT
 def init_db():
     conn = sqlite3.connect("data.db")
     c = conn.cursor()
@@ -17,16 +14,10 @@ def init_db():
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE,
-        password TEXT
-    )
-    """)
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS images (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        filename TEXT,
-        user_id INTEGER,
-        timestamp REAL
+        password TEXT,
+        email TEXT,
+        gender TEXT,
+        age INTEGER
     )
     """)
 
@@ -41,11 +32,17 @@ def register():
     if request.method == "POST":
         username = request.form["username"]
         password = generate_password_hash(request.form["password"])
+        email = request.form["email"]
+        gender = request.form["gender"]
+        age = request.form["age"]
 
         conn = sqlite3.connect("data.db")
         c = conn.cursor()
-        c.execute("INSERT INTO users (username, password) VALUES (?, ?)",
-                  (username, password))
+        c.execute("""
+            INSERT INTO users (username, password, email, gender, age)
+            VALUES (?, ?, ?, ?, ?)
+        """, (username, password, email, gender, age))
+
         conn.commit()
         conn.close()
 
@@ -62,57 +59,31 @@ def login():
 
         conn = sqlite3.connect("data.db")
         c = conn.cursor()
-        c.execute("SELECT id, password FROM users WHERE username=?", (username,))
+        c.execute("SELECT * FROM users WHERE username=?", (username,))
         user = c.fetchone()
         conn.close()
 
-        if user and check_password_hash(user[1], password):
-            session["user_id"] = user[0]
+        if user and check_password_hash(user[2], password):
+            session["user"] = user[1]
             return redirect("/dashboard")
 
-        return "Invalid Login"
+        return "Invalid login ❌"
 
     return render_template("login.html")
 
 # ---------------- DASHBOARD ----------------
 @app.route("/dashboard")
 def dashboard():
-    if "user_id" not in session:
+    if "user" not in session:
         return redirect("/")
 
-    conn = sqlite3.connect("data.db")
-    c = conn.cursor()
-    c.execute("SELECT filename FROM images WHERE user_id=?", (session["user_id"],))
-    images = c.fetchall()
-    conn.close()
+    return render_template("dashboard.html", user=session["user"])
 
-    return render_template("dashboard.html", images=images)
-
-# ---------------- UPLOAD ----------------
-@app.route("/upload", methods=["POST"])
-def upload():
-    file = request.files["file"]
-
-    filename = str(int(time.time())) + "_" + file.filename
-    path = os.path.join(UPLOAD_FOLDER, filename)
-    file.save(path)
-
-    conn = sqlite3.connect("data.db")
-    c = conn.cursor()
-    c.execute("INSERT INTO images (filename, user_id, timestamp) VALUES (?, ?, ?)",
-              (filename, session["user_id"], time.time()))
-    conn.commit()
-    conn.close()
-
-    return redirect("/dashboard")
-
-# ---------------- DOWNLOAD ----------------
-@app.route("/download/<filename>")
-def download(filename):
-    return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True)
-
-import os
+# ---------------- LOGOUT ----------------
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/")
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(debug=True)
