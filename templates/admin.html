@@ -1,36 +1,155 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Admin Panel</title>
+    <title>Admin Dashboard</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #f4f6f9;
+            margin: 0;
+        }
+
+        .header {
+            background: #1e2a38;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .container {
+            padding: 20px;
+        }
+
+        .cards {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            flex: 1;
+            min-width: 200px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .card h2 {
+            margin: 0;
+            color: #333;
+        }
+
+        .card p {
+            font-size: 24px;
+            margin: 10px 0 0;
+            color: #007bff;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            margin-top: 30px;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+            text-align: center;
+        }
+
+        th {
+            background: #007bff;
+            color: white;
+        }
+
+        .logout {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            background: red;
+            color: white;
+            padding: 10px 15px;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+
+        .logout:hover {
+            background: darkred;
+        }
+    </style>
 </head>
 
-<body style="font-family:Arial;text-align:center;">
+<body>
 
-<h1>Admin Dashboard 📊</h1>
+<div class="header">
+    <h1>🛡️ Admin Dashboard</h1>
+    <a class="logout" href="/logout">Logout</a>
+</div>
 
-<h2>Total Users: {{ total_users }}</h2>
-<h2>Average Rating: {{ avg_rating if avg_rating else 0 }}</h2>
+<div class="container">
 
-<hr>
+    <!-- STATS CARDS -->
+    <div class="cards">
+        <div class="card">
+            <h2>Total Users</h2>
+            <p>{{ total_users }}</p>
+        </div>
 
-<table border="1" style="margin:auto;">
-<tr>
-<th>Username</th>
-<th>Email</th>
-<th>Age</th>
-<th>Gender</th>
-</tr>
+        <div class="card">
+            <h2>Average Rating</h2>
+            <p>{{ avg_rating }}</p>
+        </div>
 
-{% for u in users %}
-<tr>
-<td>{{ u[0] }}</td>
-<td>{{ u[1] }}</td>
-<td>{{ u[2] }}</td>
-<td>{{ u[3] }}</td>
-</tr>
-{% endfor %}
+        <div class="card">
+            <h2>Total Ratings</h2>
+            <p>{{ ratings|length }}</p>
+        </div>
+    </div>
 
-</table>
+    <!-- USERS TABLE -->
+    <h2 style="margin-top:30px;">👥 Users List</h2>
+    <table>
+        <tr>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Age</th>
+            <th>Gender</th>
+        </tr>
+
+        {% for u in users %}
+        <tr>
+            <td>{{ u[0] }}</td>
+            <td>{{ u[1] }}</td>
+            <td>{{ u[2] }}</td>
+            <td>{{ u[3] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <!-- RATINGS TABLE -->
+    <h2 style="margin-top:30px;">⭐ Ratings</h2>
+    <table>
+        <tr>
+            <th>User</th>
+            <th>Rating</th>
+        </tr>
+
+        {% for r in ratings %}
+        <tr>
+            <td>{{ r[0] }}</td>
+            <td>{{ r[1] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+</div>
 
 </body>
 </html>
