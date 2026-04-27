@@ -52,7 +52,10 @@
 </div>
 
 <br>
-<a href="/admin">Go to Admin Panel</a>
+
+{% if session['user'] == 'admin' %}
+<a href="/admin">Admin Panel</a>
+{% endif %}
 
 </body>
 </html>
