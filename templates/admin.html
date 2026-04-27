@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Admin Panel</title>
+</head>
+
+<body style="font-family:Arial;text-align:center;">
+
+<h1>Admin Dashboard 📊</h1>
+
+<h2>Total Users: {{ total_users }}</h2>
+
+<h2>Average Rating: {{ avg_rating if avg_rating else 0 }}</h2>
+
+<hr>
+
+<h3>Users List</h3>
+
+<table border="1" style="margin:auto;">
+<tr>
+<th>Username</th>
+<th>Email</th>
+<th>Age</th>
+<th>Gender</th>
+</tr>
+
+{% for u in users %}
+<tr>
+<td>{{ u[0] }}</td>
+<td>{{ u[1] }}</td>
+<td>{{ u[2] }}</td>
+<td>{{ u[3] }}</td>
+</tr>
+{% endfor %}
+
+</table>
+
+</body>
+</html>
