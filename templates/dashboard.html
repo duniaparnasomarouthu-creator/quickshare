@@ -1,99 +1,99 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>My Feed</title>
-
+    <title>Dashboard</title>
     <style>
         body {
             margin: 0;
             font-family: 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #1f1c2c, #928dab);
-            color: white;
+            background: #f5f7fa;
         }
 
-        /* TOP BAR */
-        .topbar {
-            background: rgba(0,0,0,0.4);
-            backdrop-filter: blur(10px);
-            padding: 15px;
-            text-align: center;
-            font-size: 22px;
+        /* HEADER */
+        .header {
+            background: white;
+            padding: 15px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .logo {
+            font-size: 20px;
             font-weight: bold;
-            position: sticky;
-            top: 0;
+            color: #333;
         }
 
         .logout {
-            position: absolute;
-            right: 20px;
-            top: 15px;
+            background: #ff4d4d;
             color: white;
+            padding: 8px 15px;
+            border-radius: 6px;
             text-decoration: none;
             font-size: 14px;
         }
 
-        /* MAIN CONTAINER */
+        /* CONTAINER */
         .container {
             width: 60%;
-            margin: auto;
-            margin-top: 20px;
+            margin: 30px auto;
         }
 
-        /* GLASS CARD */
+        /* CARD */
         .card {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(15px);
-            padding: 15px;
-            margin-bottom: 15px;
-            border-radius: 15px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-            transition: 0.3s;
-        }
-
-        .card:hover {
-            transform: scale(1.02);
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         }
 
         textarea, input {
             width: 100%;
             padding: 10px;
-            margin-top: 8px;
-            border: none;
-            border-radius: 8px;
-            outline: none;
+            margin-top: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
         }
 
         textarea {
-            height: 70px;
+            height: 80px;
         }
 
         button {
             width: 100%;
-            padding: 10px;
             margin-top: 10px;
-            border: none;
-            border-radius: 8px;
-            background: linear-gradient(90deg, #ff512f, #dd2476);
+            padding: 10px;
+            background: #4a90e2;
             color: white;
-            font-weight: bold;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
             cursor: pointer;
-            transition: 0.3s;
         }
 
         button:hover {
-            opacity: 0.8;
+            background: #357bd8;
+        }
+
+        /* POSTS */
+        .post-text {
+            font-size: 15px;
+            color: #333;
         }
 
         img {
             width: 100%;
-            border-radius: 10px;
             margin-top: 10px;
+            border-radius: 8px;
         }
 
-        /* POST TEXT */
-        .post-text {
-            font-size: 16px;
-            margin-bottom: 5px;
+        .title {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #444;
         }
 
     </style>
@@ -101,19 +101,22 @@
 
 <body>
 
-<div class="topbar">
-    📸 My Feed
-    <a class="logout" href="/logout">Logout</a>
+<!-- HEADER -->
+<div class="header">
+    <div class="logo">📸 MyApp</div>
+    <a href="/logout" class="logout">Logout</a>
 </div>
 
+<!-- MAIN -->
 <div class="container">
 
     <!-- POST BOX -->
     <div class="card">
+        <div class="title">Create Post</div>
         <form action="/upload" method="post" enctype="multipart/form-data">
-            <textarea name="message" placeholder="What's on your mind?"></textarea>
+            <textarea name="message" placeholder="Write something..."></textarea>
             <input type="file" name="file">
-            <button type="submit">Post 🚀</button>
+            <button type="submit">Post</button>
         </form>
     </div>
 
@@ -127,9 +130,9 @@
 
     <!-- RATE -->
     <div class="card">
+        <div class="title">Rate Us ⭐</div>
         <form action="/rate" method="post">
-            <h3>⭐ Rate Us</h3>
-            <input type="number" name="rating" min="1" max="5">
+            <input type="number" name="rating" min="1" max="5" placeholder="Enter rating (1-5)">
             <button type="submit">Submit</button>
         </form>
     </div>
