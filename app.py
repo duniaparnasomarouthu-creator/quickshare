@@ -10,12 +10,15 @@ app.secret_key = "secret"
 UPLOAD_FOLDER = "static/uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+# ---------------- ADMIN LOGIN (CHANGE THIS) ----------------
+ADMIN_USER = "admin"
+ADMIN_PASS = "1234"
+
 # ---------------- DATABASE ----------------
 def init_db():
     conn = sqlite3.connect("data.db")
     c = conn.cursor()
 
-    # USERS TABLE (WITH ROLE)
     c.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,12 +27,10 @@ def init_db():
         email TEXT,
         age INTEGER,
         dob TEXT,
-        gender TEXT,
-        role TEXT DEFAULT 'user'
+        gender TEXT
     )
     """)
 
-    # POSTS
     c.execute("""
     CREATE TABLE IF NOT EXISTS posts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -40,7 +41,6 @@ def init_db():
     )
     """)
 
-    # RATINGS
     c.execute("""
     CREATE TABLE IF NOT EXISTS ratings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -53,21 +53,6 @@ def init_db():
     conn.close()
 
 init_db()
-
-# ---------------- CHECK ADMIN ----------------
-def is_admin():
-    if "user" not in session:
-        return False
-
-    conn = sqlite3.connect("data.db")
-    c = conn.cursor()
-
-    c.execute("SELECT role FROM users WHERE username=?", (session["user"],))
-    user = c.fetchone()
-
-    conn.close()
-
-    return user and user[0] == "admin"
 
 # ---------------- HOME ----------------
 @app.route("/")
@@ -93,7 +78,6 @@ def register():
             INSERT INTO users (username, password, email, age, dob, gender)
             VALUES (?, ?, ?, ?, ?, ?)
             """, (username, password, email, age, dob, gender))
-
             conn.commit()
         except:
             return "User already exists ❌"
@@ -109,6 +93,13 @@ def login():
     username = request.form["username"]
     password = request.form["password"]
 
+    # 🔥 ADMIN LOGIN CHECK
+    if username == ADMIN_USER and password == ADMIN_PASS:
+        session["user"] = username
+        session["admin"] = True
+        return redirect("/admin")
+
+    # NORMAL USER LOGIN
     conn = sqlite3.connect("data.db")
     c = conn.cursor()
 
@@ -118,6 +109,7 @@ def login():
 
     if user and check_password_hash(user[0], password):
         session["user"] = username
+        session["admin"] = False
         return redirect("/dashboard")
 
     return "Invalid Login ❌"
@@ -192,28 +184,24 @@ def rate():
 
     return redirect("/dashboard")
 
-# ---------------- ADMIN PANEL ----------------
+# ---------------- ADMIN ----------------
 @app.route("/admin")
 def admin():
-    if not is_admin():
+    if not session.get("admin"):
         return "Access Denied ❌ (Admin Only)"
 
     conn = sqlite3.connect("data.db")
     c = conn.cursor()
 
-    # total users
     c.execute("SELECT COUNT(*) FROM users")
     total_users = c.fetchone()[0]
 
-    # average rating
     c.execute("SELECT AVG(rating) FROM ratings")
     avg_rating = c.fetchone()[0]
 
-    # users
     c.execute("SELECT username, email, age, gender FROM users")
     users = c.fetchall()
 
-    # ratings
     c.execute("SELECT username, rating FROM ratings")
     ratings = c.fetchall()
 
