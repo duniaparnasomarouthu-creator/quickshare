@@ -10,7 +10,7 @@ app.secret_key = "secret"
 UPLOAD_FOLDER = "static/uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# ---------------- ADMIN LOGIN (CHANGE THIS) ----------------
+# ---------------- ADMIN LOGIN ----------------
 ADMIN_USER = "admin"
 ADMIN_PASS = "1234"
 
@@ -93,13 +93,13 @@ def login():
     username = request.form["username"]
     password = request.form["password"]
 
-    # 🔥 ADMIN LOGIN CHECK
+    # ADMIN LOGIN
     if username == ADMIN_USER and password == ADMIN_PASS:
         session["user"] = username
         session["admin"] = True
         return redirect("/admin")
 
-    # NORMAL USER LOGIN
+    # NORMAL USER
     conn = sqlite3.connect("data.db")
     c = conn.cursor()
 
@@ -198,6 +198,8 @@ def admin():
 
     c.execute("SELECT AVG(rating) FROM ratings")
     avg_rating = c.fetchone()[0]
+    if avg_rating is None:
+        avg_rating = 0
 
     c.execute("SELECT username, email, age, gender FROM users")
     users = c.fetchall()
@@ -223,6 +225,4 @@ def logout():
 
 # ---------------- RUN ----------------
 if __name__ == "__main__":
-    import os
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(debug=True)
