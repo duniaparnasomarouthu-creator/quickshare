@@ -89,6 +89,12 @@ def login():
     username = request.form["username"]
     password = request.form["password"]
 
+    # ADMIN LOGIN
+    if username == "admin" and password == "1234":
+        session["user"] = username
+        session["admin"] = True
+        return redirect("/admin")
+
     conn = sqlite3.connect("data.db")
     c = conn.cursor()
 
@@ -98,6 +104,7 @@ def login():
 
     if user and check_password_hash(user[0], password):
         session["user"] = username
+        session["admin"] = False
         return redirect("/dashboard")
 
     return "Invalid Login ❌"
@@ -174,8 +181,60 @@ def rate():
 
     return redirect("/dashboard")
 
+# ---------------- ADMIN ----------------
+@app.route("/admin")
+def admin():
+    if not session.get("admin"):
+        return "Access Denied ❌"
+
+    conn = sqlite3.connect("data.db")
+    c = conn.cursor()
+
+    # TOTAL USERS
+    c.execute("SELECT COUNT(*) FROM users")
+    total_users = c.fetchone()[0]
+
+    # ALL USERS
+    c.execute("SELECT username, email, age, gender FROM users")
+    users = c.fetchall()
+
+    # ALL RATINGS (OLD + NEW)
+    c.execute("SELECT username, rating FROM ratings")
+    ratings = c.fetchall()
+
+    # AVERAGE RATING
+    c.execute("SELECT AVG(rating) FROM ratings")
+    avg_rating = c.fetchone()[0] or 0
+
+    # TOTAL RATINGS COUNT
+    c.execute("SELECT COUNT(*) FROM ratings")
+    total_ratings = c.fetchone()[0]
+
+    # PERCENTAGE
+    rating_percent = (avg_rating / 5) * 100 if total_ratings > 0 else 0
+
+    # COUNT EACH RATING
+    c.execute("SELECT rating, COUNT(*) FROM ratings GROUP BY rating")
+    rating_counts = c.fetchall()
+
+    conn.close()
+
+    return render_template(
+        "admin.html",
+        total_users=total_users,
+        users=users,
+        ratings=ratings,
+        avg_rating=round(avg_rating, 2),
+        rating_percent=round(rating_percent, 2),
+        rating_counts=rating_counts
+    )
+
+# ---------------- LOGOUT ----------------
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/")
+
 # ---------------- RUN ----------------
 if __name__ == "__main__":
-    import os
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(debug=True)
