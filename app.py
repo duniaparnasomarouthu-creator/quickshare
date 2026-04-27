@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, session, send_from_directory
-import sqlite3
+import psycopg2
 import os
 import time
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -11,13 +11,18 @@ UPLOAD_FOLDER = "static/uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # ---------------- DATABASE ----------------
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+def get_db():
+    return psycopg2.connect(DATABASE_URL)
+
 def init_db():
-    conn = sqlite3.connect("data.db")
+    conn = get_db()
     c = conn.cursor()
 
     c.execute("""
     CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         username TEXT UNIQUE,
         password TEXT,
         email TEXT,
@@ -29,17 +34,17 @@ def init_db():
 
     c.execute("""
     CREATE TABLE IF NOT EXISTS posts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         username TEXT,
         message TEXT,
         filename TEXT,
-        timestamp REAL
+        timestamp FLOAT
     )
     """)
 
     c.execute("""
     CREATE TABLE IF NOT EXISTS ratings (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         username TEXT,
         rating INTEGER
     )
@@ -66,13 +71,13 @@ def register():
         dob = request.form["dob"]
         gender = request.form["gender"]
 
-        conn = sqlite3.connect("data.db")
+        conn = get_db()
         c = conn.cursor()
 
         try:
             c.execute("""
             INSERT INTO users (username, password, email, age, dob, gender)
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s)
             """, (username, password, email, age, dob, gender))
             conn.commit()
         except:
@@ -95,10 +100,10 @@ def login():
         session["admin"] = True
         return redirect("/admin")
 
-    conn = sqlite3.connect("data.db")
+    conn = get_db()
     c = conn.cursor()
 
-    c.execute("SELECT password FROM users WHERE username=?", (username,))
+    c.execute("SELECT password FROM users WHERE username=%s", (username,))
     user = c.fetchone()
     conn.close()
 
@@ -115,12 +120,12 @@ def dashboard():
     if "user" not in session:
         return redirect("/")
 
-    conn = sqlite3.connect("data.db")
+    conn = get_db()
     c = conn.cursor()
 
     c.execute("""
     SELECT filename, message FROM posts
-    WHERE username=?
+    WHERE username=%s
     ORDER BY id DESC
     """, (session["user"],))
 
@@ -144,12 +149,12 @@ def upload():
         filename = str(int(time.time())) + "_" + file.filename
         file.save(os.path.join(UPLOAD_FOLDER, filename))
 
-    conn = sqlite3.connect("data.db")
+    conn = get_db()
     c = conn.cursor()
 
     c.execute("""
     INSERT INTO posts (username, message, filename, timestamp)
-    VALUES (?, ?, ?, ?)
+    VALUES (%s, %s, %s, %s)
     """, (session["user"], message, filename, time.time()))
 
     conn.commit()
@@ -170,10 +175,10 @@ def rate():
 
     rating = request.form["rating"]
 
-    conn = sqlite3.connect("data.db")
+    conn = get_db()
     c = conn.cursor()
 
-    c.execute("INSERT INTO ratings (username, rating) VALUES (?, ?)",
+    c.execute("INSERT INTO ratings (username, rating) VALUES (%s, %s)",
               (session["user"], rating))
 
     conn.commit()
@@ -187,33 +192,26 @@ def admin():
     if not session.get("admin"):
         return "Access Denied ❌"
 
-    conn = sqlite3.connect("data.db")
+    conn = get_db()
     c = conn.cursor()
 
-    # TOTAL USERS
     c.execute("SELECT COUNT(*) FROM users")
     total_users = c.fetchone()[0]
 
-    # ALL USERS
     c.execute("SELECT username, email, age, gender FROM users")
     users = c.fetchall()
 
-    # ALL RATINGS (OLD + NEW)
     c.execute("SELECT username, rating FROM ratings")
     ratings = c.fetchall()
 
-    # AVERAGE RATING
     c.execute("SELECT AVG(rating) FROM ratings")
     avg_rating = c.fetchone()[0] or 0
 
-    # TOTAL RATINGS COUNT
     c.execute("SELECT COUNT(*) FROM ratings")
     total_ratings = c.fetchone()[0]
 
-    # PERCENTAGE
     rating_percent = (avg_rating / 5) * 100 if total_ratings > 0 else 0
 
-    # COUNT EACH RATING
     c.execute("SELECT rating, COUNT(*) FROM ratings GROUP BY rating")
     rating_counts = c.fetchall()
 
@@ -237,6 +235,5 @@ def logout():
 
 # ---------------- RUN ----------------
 if __name__ == "__main__":
-    import os
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
