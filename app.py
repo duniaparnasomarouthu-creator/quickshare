@@ -99,7 +99,7 @@ def login():
         session["admin"] = True
         return redirect("/admin")
 
-    # NORMAL USER
+    # USER LOGIN
     conn = sqlite3.connect("data.db")
     c = conn.cursor()
 
@@ -144,8 +144,7 @@ def upload():
     message = request.form["message"]
 
     filename = str(int(time.time())) + "_" + file.filename
-    path = os.path.join(UPLOAD_FOLDER, filename)
-    file.save(path)
+    file.save(os.path.join(UPLOAD_FOLDER, filename))
 
     conn = sqlite3.connect("data.db")
     c = conn.cursor()
@@ -184,11 +183,11 @@ def rate():
 
     return redirect("/dashboard")
 
-# ---------------- ADMIN ----------------
+# ---------------- ADMIN DASHBOARD ----------------
 @app.route("/admin")
 def admin():
     if not session.get("admin"):
-        return "Access Denied ❌ (Admin Only)"
+        return "Access Denied ❌"
 
     conn = sqlite3.connect("data.db")
     c = conn.cursor()
@@ -223,6 +222,7 @@ def logout():
     session.clear()
     return redirect("/")
 
-# ---------------- RUN ----------------
+# ---------------- RUN (IMPORTANT FIX FOR RENDER) ----------------
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
