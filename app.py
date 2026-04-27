@@ -83,7 +83,6 @@ def register():
             return "User already exists ❌"
 
         conn.close()
-
         return redirect("/")
 
     return render_template("register.html")
@@ -177,9 +176,15 @@ def rate():
 
     return redirect("/dashboard")
 
-# ---------------- ADMIN DASHBOARD ----------------
+# ---------------- ADMIN (PROTECTED) ----------------
 @app.route("/admin")
 def admin():
+    if "user" not in session:
+        return redirect("/")
+
+    if session["user"] != "admin":
+        return "Access Denied ❌ (Admin Only)"
+
     conn = sqlite3.connect("data.db")
     c = conn.cursor()
 
