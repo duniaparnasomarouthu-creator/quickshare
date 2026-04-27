@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+</head>
+<body style="font-family:Arial;text-align:center;padding:30px;">
+
+<h1>Dashboard 📸</h1>
+
+<!-- UPLOAD -->
+<form action="/upload" method="POST" enctype="multipart/form-data">
+    <input type="file" name="file" required>
+    <button>Upload</button>
+</form>
+
+<hr>
+
+<h2>Your Images</h2>
+
+<div>
+{% for img in images %}
+    <div style="margin:10px;">
+        <img src="{{ url_for('static', filename='uploads/' + img[0]) }}" width="200">
+        <br>
+        <a href="/download/{{ img[0] }}">Download</a>
+    </div>
+{% endfor %}
+</div>
+
+</body>
+</html>
