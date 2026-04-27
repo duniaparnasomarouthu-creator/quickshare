@@ -1,7 +1,8 @@
 from flask import Flask, render_template, request, redirect, session, send_from_directory
-import os
 import sqlite3
+import os
 import time
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.secret_key = "secret"
@@ -14,6 +15,20 @@ def init_db():
     conn = sqlite3.connect("data.db")
     c = conn.cursor()
 
+    # USERS TABLE
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE,
+        password TEXT,
+        email TEXT,
+        age INTEGER,
+        dob TEXT,
+        gender TEXT
+    )
+    """)
+
+    # POSTS TABLE
     c.execute("""
     CREATE TABLE IF NOT EXISTS posts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,10 +44,40 @@ def init_db():
 
 init_db()
 
-# ---------------- HOME (LOGIN) ----------------
+# ---------------- HOME ----------------
 @app.route("/")
 def home():
     return render_template("login.html")
+
+# ---------------- REGISTER ----------------
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = generate_password_hash(request.form["password"])
+        email = request.form["email"]
+        age = request.form["age"]
+        dob = request.form["dob"]
+        gender = request.form["gender"]
+
+        conn = sqlite3.connect("data.db")
+        c = conn.cursor()
+
+        try:
+            c.execute("""
+                INSERT INTO users (username, password, email, age, dob, gender)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (username, password, email, age, dob, gender))
+
+            conn.commit()
+        except:
+            return "User already exists ❌"
+
+        conn.close()
+
+        return redirect("/")
+
+    return render_template("register.html")
 
 # ---------------- LOGIN ----------------
 @app.route("/login", methods=["POST"])
@@ -40,7 +85,14 @@ def login():
     username = request.form["username"]
     password = request.form["password"]
 
-    if username == "admin" and password == "1234":
+    conn = sqlite3.connect("data.db")
+    c = conn.cursor()
+
+    c.execute("SELECT password FROM users WHERE username=?", (username,))
+    user = c.fetchone()
+    conn.close()
+
+    if user and check_password_hash(user[0], password):
         session["user"] = username
         return redirect("/dashboard")
 
