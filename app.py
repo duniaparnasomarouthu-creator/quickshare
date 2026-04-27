@@ -15,7 +15,7 @@ def init_db():
     conn = sqlite3.connect("data.db")
     c = conn.cursor()
 
-    # USERS
+    # USERS TABLE (WITH ROLE)
     c.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,7 +24,8 @@ def init_db():
         email TEXT,
         age INTEGER,
         dob TEXT,
-        gender TEXT
+        gender TEXT,
+        role TEXT DEFAULT 'user'
     )
     """)
 
@@ -52,6 +53,21 @@ def init_db():
     conn.close()
 
 init_db()
+
+# ---------------- CHECK ADMIN ----------------
+def is_admin():
+    if "user" not in session:
+        return False
+
+    conn = sqlite3.connect("data.db")
+    c = conn.cursor()
+
+    c.execute("SELECT role FROM users WHERE username=?", (session["user"],))
+    user = c.fetchone()
+
+    conn.close()
+
+    return user and user[0] == "admin"
 
 # ---------------- HOME ----------------
 @app.route("/")
@@ -157,7 +173,7 @@ def upload():
 def download(filename):
     return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True)
 
-# ---------------- RATING ----------------
+# ---------------- RATE ----------------
 @app.route("/rate", methods=["POST"])
 def rate():
     if "user" not in session:
@@ -176,33 +192,46 @@ def rate():
 
     return redirect("/dashboard")
 
-# ---------------- ADMIN (PROTECTED) ----------------
+# ---------------- ADMIN PANEL ----------------
 @app.route("/admin")
 def admin():
-    if "user" not in session:
-        return redirect("/")
-
-    if session["user"] != "admin":
+    if not is_admin():
         return "Access Denied ❌ (Admin Only)"
 
     conn = sqlite3.connect("data.db")
     c = conn.cursor()
 
+    # total users
     c.execute("SELECT COUNT(*) FROM users")
     total_users = c.fetchone()[0]
 
+    # average rating
     c.execute("SELECT AVG(rating) FROM ratings")
     avg_rating = c.fetchone()[0]
 
+    # users
     c.execute("SELECT username, email, age, gender FROM users")
     users = c.fetchall()
 
+    # ratings
+    c.execute("SELECT username, rating FROM ratings")
+    ratings = c.fetchall()
+
     conn.close()
 
-    return render_template("admin.html",
-                           total_users=total_users,
-                           avg_rating=avg_rating,
-                           users=users)
+    return render_template(
+        "admin.html",
+        total_users=total_users,
+        avg_rating=avg_rating,
+        users=users,
+        ratings=ratings
+    )
+
+# ---------------- LOGOUT ----------------
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/")
 
 # ---------------- RUN ----------------
 if __name__ == "__main__":
