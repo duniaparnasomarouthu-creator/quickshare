@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Secret Image Upload</title>
+    <title>Secret Image System</title>
 </head>
 <body style="text-align:center;font-family:Arial;padding:50px;">
 
@@ -15,7 +15,15 @@
 
 <br><br>
 
-<a href="/view">View Image using Code</a>
+<a href="/view">View Image</a>
+
+<br><br>
+
+<h3>Delete Image</h3>
+<form action="/delete" method="POST">
+    <input type="text" name="code" placeholder="Enter Code" required>
+    <button type="submit">Delete</button>
+</form>
 
 </body>
 </html>
