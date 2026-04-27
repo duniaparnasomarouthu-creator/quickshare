@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request
 import os
+import random
 
 app = Flask(__name__)
 
@@ -7,6 +8,9 @@ UPLOAD_FOLDER = "static/uploads"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# store code → filename
+data_store = {}
 
 @app.route("/")
 def home():
@@ -16,17 +20,32 @@ def home():
 def upload():
     file = request.files["file"]
 
-    filepath = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
+    # generate secret code
+    code = str(random.randint(1000, 9999))
+
+    filename = code + "_" + file.filename
+    filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
     file.save(filepath)
 
-    return render_template("result.html")
+    # save mapping
+    data_store[code] = filename
 
-# ⭐ NEW: Gallery page
-@app.route("/gallery")
-def gallery():
-    images = os.listdir(UPLOAD_FOLDER)
-    images = ["uploads/" + img for img in images]
-    return render_template("gallery.html", images=images)
+    return render_template("result.html", code=code)
+
+@app.route("/view", methods=["GET", "POST"])
+def view():
+    image_url = None
+    error = None
+
+    if request.method == "POST":
+        code = request.form["code"]
+
+        if code in data_store:
+            image_url = "uploads/" + data_store[code]
+        else:
+            error = "Invalid Code ❌"
+
+    return render_template("view.html", image_url=image_url, error=error)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
