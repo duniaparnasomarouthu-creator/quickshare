@@ -15,12 +15,13 @@ def init_db():
     c = conn.cursor()
 
     c.execute("""
-        CREATE TABLE IF NOT EXISTS images (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            filename TEXT,
-            user TEXT,
-            timestamp REAL
-        )
+    CREATE TABLE IF NOT EXISTS posts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT,
+        message TEXT,
+        filename TEXT,
+        timestamp REAL
+    )
     """)
 
     conn.commit()
@@ -28,7 +29,7 @@ def init_db():
 
 init_db()
 
-# ---------------- HOME (LOGIN PAGE) ----------------
+# ---------------- HOME (LOGIN) ----------------
 @app.route("/")
 def home():
     return render_template("login.html")
@@ -39,7 +40,6 @@ def login():
     username = request.form["username"]
     password = request.form["password"]
 
-    # simple login (you can improve later)
     if username == "admin" and password == "1234":
         session["user"] = username
         return redirect("/dashboard")
@@ -54,19 +54,26 @@ def dashboard():
 
     conn = sqlite3.connect("data.db")
     c = conn.cursor()
-    c.execute("SELECT filename FROM images WHERE user=?", (session["user"],))
-    images = c.fetchall()
+
+    c.execute("""
+        SELECT filename, message FROM posts
+        WHERE username=?
+        ORDER BY id DESC
+    """, (session["user"],))
+
+    posts = c.fetchall()
     conn.close()
 
-    return render_template("dashboard.html", images=images)
+    return render_template("dashboard.html", posts=posts)
 
-# ---------------- UPLOAD ----------------
+# ---------------- UPLOAD (TEXT + IMAGE) ----------------
 @app.route("/upload", methods=["POST"])
 def upload():
     if "user" not in session:
         return redirect("/")
 
     file = request.files["file"]
+    message = request.form["message"]
 
     filename = str(int(time.time())) + "_" + file.filename
     path = os.path.join(UPLOAD_FOLDER, filename)
@@ -74,8 +81,12 @@ def upload():
 
     conn = sqlite3.connect("data.db")
     c = conn.cursor()
-    c.execute("INSERT INTO images (filename, user, timestamp) VALUES (?, ?, ?)",
-              (filename, session["user"], time.time()))
+
+    c.execute("""
+        INSERT INTO posts (username, message, filename, timestamp)
+        VALUES (?, ?, ?, ?)
+    """, (session["user"], message, filename, time.time()))
+
     conn.commit()
     conn.close()
 
@@ -86,7 +97,7 @@ def upload():
 def download(filename):
     return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True)
 
-# ---------------- RUN (IMPORTANT FOR RENDER) ----------------
+# ---------------- RUN (RENDER FIX) ----------------
 if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 10000))
