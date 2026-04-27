@@ -15,7 +15,7 @@ def init_db():
     conn = sqlite3.connect("data.db")
     c = conn.cursor()
 
-    # USERS TABLE
+    # USERS
     c.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -28,7 +28,7 @@ def init_db():
     )
     """)
 
-    # POSTS TABLE
+    # POSTS
     c.execute("""
     CREATE TABLE IF NOT EXISTS posts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -36,6 +36,15 @@ def init_db():
         message TEXT,
         filename TEXT,
         timestamp REAL
+    )
+    """)
+
+    # RATINGS
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS ratings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT,
+        rating INTEGER
     )
     """)
 
@@ -65,8 +74,8 @@ def register():
 
         try:
             c.execute("""
-                INSERT INTO users (username, password, email, age, dob, gender)
-                VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO users (username, password, email, age, dob, gender)
+            VALUES (?, ?, ?, ?, ?, ?)
             """, (username, password, email, age, dob, gender))
 
             conn.commit()
@@ -108,9 +117,9 @@ def dashboard():
     c = conn.cursor()
 
     c.execute("""
-        SELECT filename, message FROM posts
-        WHERE username=?
-        ORDER BY id DESC
+    SELECT filename, message FROM posts
+    WHERE username=?
+    ORDER BY id DESC
     """, (session["user"],))
 
     posts = c.fetchall()
@@ -118,7 +127,7 @@ def dashboard():
 
     return render_template("dashboard.html", posts=posts)
 
-# ---------------- UPLOAD (TEXT + IMAGE) ----------------
+# ---------------- UPLOAD ----------------
 @app.route("/upload", methods=["POST"])
 def upload():
     if "user" not in session:
@@ -135,8 +144,8 @@ def upload():
     c = conn.cursor()
 
     c.execute("""
-        INSERT INTO posts (username, message, filename, timestamp)
-        VALUES (?, ?, ?, ?)
+    INSERT INTO posts (username, message, filename, timestamp)
+    VALUES (?, ?, ?, ?)
     """, (session["user"], message, filename, time.time()))
 
     conn.commit()
@@ -149,7 +158,48 @@ def upload():
 def download(filename):
     return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True)
 
-# ---------------- RUN (RENDER FIX) ----------------
+# ---------------- RATING ----------------
+@app.route("/rate", methods=["POST"])
+def rate():
+    if "user" not in session:
+        return redirect("/")
+
+    rating = request.form["rating"]
+
+    conn = sqlite3.connect("data.db")
+    c = conn.cursor()
+
+    c.execute("INSERT INTO ratings (username, rating) VALUES (?, ?)",
+              (session["user"], rating))
+
+    conn.commit()
+    conn.close()
+
+    return redirect("/dashboard")
+
+# ---------------- ADMIN DASHBOARD ----------------
+@app.route("/admin")
+def admin():
+    conn = sqlite3.connect("data.db")
+    c = conn.cursor()
+
+    c.execute("SELECT COUNT(*) FROM users")
+    total_users = c.fetchone()[0]
+
+    c.execute("SELECT AVG(rating) FROM ratings")
+    avg_rating = c.fetchone()[0]
+
+    c.execute("SELECT username, email, age, gender FROM users")
+    users = c.fetchall()
+
+    conn.close()
+
+    return render_template("admin.html",
+                           total_users=total_users,
+                           avg_rating=avg_rating,
+                           users=users)
+
+# ---------------- RUN ----------------
 if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 10000))
