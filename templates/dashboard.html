@@ -8,9 +8,7 @@
 
 <h1>My Feed 📸</h1>
 
-<!-- UPLOAD FORM -->
-<form action="/upload" method="POST" enctype="multipart/form-data"
-style="margin:20px;">
+<form action="/upload" method="POST" enctype="multipart/form-data">
 
 <input type="text" name="message" placeholder="Write something..." required>
 <br><br>
@@ -24,20 +22,19 @@ style="margin:20px;">
 
 <hr>
 
-<!-- FEED -->
 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:20px;">
 
 {% for post in posts %}
 <div style="background:white;padding:10px;border-radius:10px;">
 
-    <p>{{ post[1] }}</p>
+<p>{{ post[1] }}</p>
 
-    <img src="{{ url_for('static', filename='uploads/' + post[0]) }}"
-    style="width:100%;border-radius:5px;">
+<img src="{{ url_for('static', filename='uploads/' + post[0]) }}"
+style="width:100%;border-radius:5px;">
 
-    <br><br>
+<br><br>
 
-    <a href="/download/{{ post[0] }}">⬇ Download</a>
+<a href="/download/{{ post[0] }}">⬇ Download</a>
 
 </div>
 {% endfor %}
