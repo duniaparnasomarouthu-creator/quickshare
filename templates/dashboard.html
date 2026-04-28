@@ -1,185 +1,69 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <style>
-body {
-    margin:0;
-    font-family:Segoe UI;
-    background:#f1f3f4;
-    transition:0.3s;
-}
-
-.dark {
-    background:#121212;
-    color:white;
-}
-
-.header {
-    background:#202124;
-    color:white;
-    padding:15px;
-    display:flex;
-    justify-content:space-between;
-}
-
-.container {
-    display:flex;
-}
-
-.sidebar {
-    width:240px;
-    background:white;
-    height:100vh;
-    padding:15px;
-    transition:0.3s;
-}
-
-.dark .sidebar {
-    background:#1e1e1e;
-}
-
-.main {
-    flex:1;
-    padding:20px;
-}
-
-.card {
-    background:white;
-    padding:15px;
-    border-radius:12px;
-    margin-bottom:15px;
-    box-shadow:0 2px 6px rgba(0,0,0,0.1);
-    transition:0.3s;
-}
-
-.dark .card {
-    background:#1e1e1e;
-}
-
-.folder {
-    padding:10px;
-    margin:5px 0;
-    background:#e8f0fe;
-    border-radius:8px;
-    cursor:pointer;
-}
-
-.file {
-    padding:10px;
-    margin:5px 0;
-    background:#f8f9fa;
-    border-radius:8px;
-    display:flex;
-    justify-content:space-between;
-}
-
-.dark .file {
-    background:#2c2c2c;
-}
-
-/* storage bar */
-.progress {
-    background:#ddd;
-    border-radius:10px;
-    overflow:hidden;
-}
-
-.bar {
-    height:10px;
-    background:#4285f4;
-    width:{{storage}}%;
-}
-
-/* buttons */
-button {
-    padding:5px 10px;
-    border:none;
-    border-radius:6px;
-    cursor:pointer;
-}
-
-/* drag box */
-#drop {
-    border:2px dashed gray;
-    padding:20px;
-    text-align:center;
-}
+body {font-family:Segoe UI;margin:0;background:#f1f3f4;}
+.header {background:#202124;color:white;padding:15px;display:flex;justify-content:space-between;}
+.container {display:flex;}
+.sidebar {width:220px;background:white;height:100vh;padding:15px;}
+.main {flex:1;padding:20px;}
+.card {background:white;padding:15px;border-radius:10px;margin-bottom:15px;}
+.file {display:flex;justify-content:space-between;margin:5px;}
+.dark {background:#121212;color:white;}
 </style>
 </head>
 
 <body id="body">
 
 <div class="header">
-<h2>QuickShare Drive</h2>
+<h2>QuickShare</h2>
 <div>
 <button onclick="toggleDark()">🌙</button>
-<a href="/admin" style="color:white;">Admin</a>
 <a href="/logout" style="color:white;">Logout</a>
 </div>
 </div>
 
 <div class="container">
 
-<!-- SIDEBAR -->
 <div class="sidebar">
-
 <h3>Folders</h3>
-
-<div class="folder" onclick="go('root')">📁 Root</div>
+<div onclick="go('root')">📁 Root</div>
 
 {% for f in folders %}
-<div class="folder" onclick="go('{{f[0]}}')">📁 {{f[0]}}</div>
+<div onclick="go('{{f[0]}}')">📁 {{f[0]}}</div>
 {% endfor %}
 
 <form action="/create_folder" method="post">
-<input name="folder" placeholder="New Folder">
+<input name="folder">
 <button>Create</button>
 </form>
-
 </div>
 
-<!-- MAIN -->
 <div class="main">
 
-<!-- STORAGE -->
 <div class="card">
-<h3>Storage Usage</h3>
-<div class="progress">
-<div class="bar"></div>
-</div>
-<p>{{storage}}% used</p>
-</div>
-
-<!-- UPLOAD -->
-<div class="card">
-<h3>Upload</h3>
-
 <form action="/upload" method="post" enctype="multipart/form-data">
 <input type="file" name="file">
 <input type="hidden" name="folder" value="{{current_folder}}">
 <button>Upload</button>
 </form>
-
-<div id="drop">Drag & Drop files here</div>
 </div>
 
-<!-- FILES -->
 <div class="card">
 <h3>Files</h3>
 
 {% for p in posts %}
 <div class="file">
 
-<span>
-{{ get_icon(p[0]) }} {{p[1]}}
-</span>
+<span>{{ get_icon(p[1]) }} {{p[1]}}</span>
 
 <span>
-<a href="/files/{{p[0]}}" target="_blank">Open</a>
+<a href="{{p[0]}}" target="_blank">Open</a>
 
-<form action="/delete/{{p[0]}}" method="post" style="display:inline;">
+<button onclick="copyLink('{{p[0]}}')">Share</button>
+
+<form action="/delete" method="post" style="display:inline;">
+<input name="url" value="{{p[0]}}" hidden>
 <button>Delete</button>
 </form>
 
@@ -188,42 +72,29 @@ button {
 <input name="new" placeholder="Rename">
 <button>Rename</button>
 </form>
-
 </span>
 
 </div>
-{% endfor %}
 
+{% if p[0].endswith('.jpg') or p[0].endswith('.png') %}
+<img src="{{p[0]}}" width="150">
+{% elif p[0].endswith('.pdf') %}
+<iframe src="{{p[0]}}" width="200" height="150"></iframe>
+{% endif %}
+
+{% endfor %}
 </div>
 
 </div>
 </div>
 
 <script>
-function go(folder){
-    window.location = "/dashboard?folder=" + folder;
+function go(f){ window.location="/dashboard?folder="+f; }
+function toggleDark(){ document.body.classList.toggle("dark"); }
+function copyLink(link){
+    navigator.clipboard.writeText(link);
+    alert("Link copied!");
 }
-
-function toggleDark(){
-    document.body.classList.toggle("dark");
-}
-
-/* drag drop */
-const drop = document.getElementById("drop");
-
-drop.ondrop = async (e)=>{
-    e.preventDefault();
-    let file = e.dataTransfer.files[0];
-
-    let form = new FormData();
-    form.append("file", file);
-    form.append("folder","{{current_folder}}");
-
-    await fetch("/upload",{method:"POST",body:form});
-    location.reload();
-};
-
-drop.ondragover = e => e.preventDefault();
 </script>
 
 </body>
