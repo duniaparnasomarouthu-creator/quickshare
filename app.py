@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, session, send_from_directory
-import psycopg2
+import sqlite3
 import os
 import time
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -11,18 +11,13 @@ UPLOAD_FOLDER = "static/uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # ---------------- DATABASE ----------------
-DATABASE_URL = os.environ.get("DATABASE_URL")
-
-def get_db():
-    return psycopg2.connect(DATABASE_URL)
-
 def init_db():
-    conn = get_db()
+    conn = sqlite3.connect("data.db")
     c = conn.cursor()
 
     c.execute("""
     CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE,
         password TEXT,
         email TEXT,
@@ -33,18 +28,28 @@ def init_db():
     """)
 
     c.execute("""
+    CREATE TABLE IF NOT EXISTS folders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT,
+        folder_name TEXT
+    )
+    """)
+
+    c.execute("""
     CREATE TABLE IF NOT EXISTS posts (
-        id SERIAL PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT,
         message TEXT,
         filename TEXT,
-        timestamp FLOAT
+        folder TEXT,
+        size INTEGER,
+        timestamp REAL
     )
     """)
 
     c.execute("""
     CREATE TABLE IF NOT EXISTS ratings (
-        id SERIAL PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT,
         rating INTEGER
     )
@@ -64,24 +69,24 @@ def home():
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        username = request.form["username"]
-        password = generate_password_hash(request.form["password"])
-        email = request.form["email"]
-        age = request.form["age"]
-        dob = request.form["dob"]
-        gender = request.form["gender"]
-
-        conn = get_db()
+        conn = sqlite3.connect("data.db")
         c = conn.cursor()
 
         try:
             c.execute("""
-            INSERT INTO users (username, password, email, age, dob, gender)
-            VALUES (%s, %s, %s, %s, %s, %s)
-            """, (username, password, email, age, dob, gender))
+            INSERT INTO users (username,password,email,age,dob,gender)
+            VALUES (?,?,?,?,?,?)
+            """, (
+                request.form["username"],
+                generate_password_hash(request.form["password"]),
+                request.form["email"],
+                request.form["age"],
+                request.form["dob"],
+                request.form["gender"]
+            ))
             conn.commit()
         except:
-            return "User already exists ❌"
+            return "User exists ❌"
 
         conn.close()
         return redirect("/")
@@ -94,16 +99,14 @@ def login():
     username = request.form["username"]
     password = request.form["password"]
 
-    # ADMIN LOGIN
     if username == "admin" and password == "1234":
         session["user"] = username
         session["admin"] = True
         return redirect("/admin")
 
-    conn = get_db()
+    conn = sqlite3.connect("data.db")
     c = conn.cursor()
-
-    c.execute("SELECT password FROM users WHERE username=%s", (username,))
+    c.execute("SELECT password FROM users WHERE username=?", (username,))
     user = c.fetchone()
     conn.close()
 
@@ -112,7 +115,7 @@ def login():
         session["admin"] = False
         return redirect("/dashboard")
 
-    return "Invalid Login ❌"
+    return "Invalid ❌"
 
 # ---------------- DASHBOARD ----------------
 @app.route("/dashboard")
@@ -120,66 +123,76 @@ def dashboard():
     if "user" not in session:
         return redirect("/")
 
-    conn = get_db()
+    conn = sqlite3.connect("data.db")
     c = conn.cursor()
 
-    c.execute("""
-    SELECT filename, message FROM posts
-    WHERE username=%s
-    ORDER BY id DESC
-    """, (session["user"],))
+    c.execute("SELECT folder_name FROM folders WHERE username=?", (session["user"],))
+    folders = c.fetchall()
 
+    c.execute("""
+    SELECT filename, message, folder FROM posts
+    WHERE username=? ORDER BY id DESC
+    """, (session["user"],))
     posts = c.fetchall()
+
+    c.execute("SELECT SUM(size) FROM posts WHERE username=?", (session["user"],))
+    total = c.fetchone()[0] or 0
+    storage_mb = round(total/(1024*1024),2)
+
     conn.close()
 
-    return render_template("dashboard.html", posts=posts)
+    return render_template("dashboard.html", posts=posts, folders=folders, storage_mb=storage_mb)
+
+# ---------------- CREATE FOLDER ----------------
+@app.route("/create_folder", methods=["POST"])
+def create_folder():
+    conn = sqlite3.connect("data.db")
+    c = conn.cursor()
+
+    c.execute("INSERT INTO folders (username, folder_name) VALUES (?,?)",
+              (session["user"], request.form["folder"]))
+    conn.commit()
+    conn.close()
+
+    return redirect("/dashboard")
 
 # ---------------- UPLOAD ----------------
 @app.route("/upload", methods=["POST"])
 def upload():
-    if "user" not in session:
-        return redirect("/")
-
     file = request.files["file"]
     message = request.form["message"]
+    folder = request.form["folder"]
 
     filename = ""
+    size = 0
 
     if file and file.filename != "":
         filename = str(int(time.time())) + "_" + file.filename
-        file.save(os.path.join(UPLOAD_FOLDER, filename))
+        path = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(path)
+        size = os.path.getsize(path)
 
-    conn = get_db()
+    conn = sqlite3.connect("data.db")
     c = conn.cursor()
 
     c.execute("""
-    INSERT INTO posts (username, message, filename, timestamp)
-    VALUES (%s, %s, %s, %s)
-    """, (session["user"], message, filename, time.time()))
+    INSERT INTO posts (username,message,filename,folder,size,timestamp)
+    VALUES (?,?,?,?,?,?)
+    """, (session["user"], message, filename, folder, size, time.time()))
 
     conn.commit()
     conn.close()
 
     return redirect("/dashboard")
 
-# ---------------- DOWNLOAD ----------------
-@app.route("/download/<filename>")
-def download(filename):
-    return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True)
-
 # ---------------- RATE ----------------
 @app.route("/rate", methods=["POST"])
 def rate():
-    if "user" not in session:
-        return redirect("/")
-
-    rating = request.form["rating"]
-
-    conn = get_db()
+    conn = sqlite3.connect("data.db")
     c = conn.cursor()
 
-    c.execute("INSERT INTO ratings (username, rating) VALUES (%s, %s)",
-              (session["user"], rating))
+    c.execute("INSERT INTO ratings (username,rating) VALUES (?,?)",
+              (session["user"], request.form["rating"]))
 
     conn.commit()
     conn.close()
@@ -190,50 +203,24 @@ def rate():
 @app.route("/admin")
 def admin():
     if not session.get("admin"):
-        return "Access Denied ❌"
+        return "Denied ❌"
 
-    conn = get_db()
+    conn = sqlite3.connect("data.db")
     c = conn.cursor()
 
     c.execute("SELECT COUNT(*) FROM users")
     total_users = c.fetchone()[0]
 
-    c.execute("SELECT username, email, age, gender FROM users")
-    users = c.fetchall()
-
-    c.execute("SELECT username, rating FROM ratings")
-    ratings = c.fetchall()
-
     c.execute("SELECT AVG(rating) FROM ratings")
-    avg_rating = c.fetchone()[0] or 0
+    avg = c.fetchone()[0] or 0
 
-    c.execute("SELECT COUNT(*) FROM ratings")
-    total_ratings = c.fetchone()[0]
-
-    rating_percent = (avg_rating / 5) * 100 if total_ratings > 0 else 0
-
-    c.execute("SELECT rating, COUNT(*) FROM ratings GROUP BY rating")
-    rating_counts = c.fetchall()
+    c.execute("SELECT username,email FROM users")
+    users = c.fetchall()
 
     conn.close()
 
-    return render_template(
-        "admin.html",
-        total_users=total_users,
-        users=users,
-        ratings=ratings,
-        avg_rating=round(avg_rating, 2),
-        rating_percent=round(rating_percent, 2),
-        rating_counts=rating_counts
-    )
-
-# ---------------- LOGOUT ----------------
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect("/")
+    return render_template("admin.html", total_users=total_users, avg=round(avg,2), users=users)
 
 # ---------------- RUN ----------------
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(debug=True)
