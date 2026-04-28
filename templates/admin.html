@@ -1,8 +1,8 @@
-<h2>Admin</h2>
+<!DOCTYPE html>
+<html>
+<body>
 
-<p>Total Users: {{total}}</p>
-<p>Average Rating: {{avg}}</p>
-<p>Performance: {{percent}}%</p>
+<h2>Admin</h2>
 
 <h3>Users</h3>
 <ul>
@@ -14,6 +14,11 @@
 <h3>Ratings</h3>
 <ul>
 {% for r in ratings %}
-<li>{{r[0]}} → {{r[1]}}</li>
+<li>{{r[0]}} →
+{% for i in range(r[1]) %}★{% endfor %}
+</li>
 {% endfor %}
 </ul>
+
+</body>
+</html>
