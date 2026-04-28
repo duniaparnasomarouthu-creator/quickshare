@@ -11,7 +11,7 @@ app.secret_key = "secretkey"
 cloudinary.config(
     cloud_name="dpbsztgph",
     api_key="455596988582446",
-    api_secret="YOUR_NEW_SECRET"
+    api_secret="aS_7z1ZI_crrY_10i49lIpDutr0"
 )
 
 # ---------- DATABASE ----------
