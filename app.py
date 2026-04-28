@@ -1,58 +1,41 @@
-from flask import Flask, render_template, request, redirect, session, send_from_directory
-import sqlite3, os, time
+from flask import Flask, render_template, request, redirect, session
+import sqlite3, time
 from werkzeug.security import generate_password_hash, check_password_hash
+import cloudinary
+import cloudinary.uploader
 
 app = Flask(__name__)
 app.secret_key = "secretkey"
 
-# ---------- STORAGE ----------
-UPLOAD_FOLDER = "/tmp/uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+# ---------- CLOUDINARY CONFIG ----------
+cloudinary.config(
+    cloud_name="dpbsztgph",
+    api_key="455596988582446",
+    api_secret="YOUR_NEW_SECRET"
+)
 
 # ---------- DATABASE ----------
 def init_db():
     conn = sqlite3.connect("data.db")
     c = conn.cursor()
 
-    c.execute("""CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE,
-        password TEXT
-    )""")
-
-    c.execute("""CREATE TABLE IF NOT EXISTS posts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT,
-        message TEXT,
-        filename TEXT,
-        folder TEXT,
-        time TEXT
-    )""")
-
-    c.execute("""CREATE TABLE IF NOT EXISTS folders (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT,
-        folder_name TEXT
-    )""")
-
-    c.execute("""CREATE TABLE IF NOT EXISTS ratings (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT,
-        rating INTEGER
-    )""")
+    c.execute("CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, username TEXT, password TEXT)")
+    c.execute("CREATE TABLE IF NOT EXISTS posts(id INTEGER PRIMARY KEY, username TEXT, message TEXT, file_url TEXT, folder TEXT, time TEXT)")
+    c.execute("CREATE TABLE IF NOT EXISTS folders(id INTEGER PRIMARY KEY, username TEXT, folder_name TEXT)")
+    c.execute("CREATE TABLE IF NOT EXISTS ratings(id INTEGER PRIMARY KEY, username TEXT, rating INTEGER)")
 
     conn.commit()
     conn.close()
 
 init_db()
 
-# ---------- HELPERS ----------
-def get_icon(filename):
-    if filename.endswith((".png",".jpg",".jpeg")):
+# ---------- ICON ----------
+def get_icon(name):
+    if name.endswith((".png",".jpg",".jpeg")):
         return "🖼️"
-    if filename.endswith(".pdf"):
+    if name.endswith(".pdf"):
         return "📄"
-    if filename.endswith((".doc",".docx")):
+    if name.endswith((".doc",".docx")):
         return "📃"
     return "📁"
 
@@ -69,21 +52,18 @@ def register():
     if request.method == "POST":
         conn = sqlite3.connect("data.db")
         c = conn.cursor()
-
         try:
             c.execute("INSERT INTO users VALUES(NULL,?,?)",
                       (request.form["username"],
                        generate_password_hash(request.form["password"])))
             conn.commit()
         except:
-            return "User exists ❌"
-
+            return "User exists"
         conn.close()
         return redirect("/")
-
     return render_template("register.html")
 
-# ---------- LOGIN (FIXED FOR OLD USERS) ----------
+# ---------- LOGIN ----------
 @app.route("/login", methods=["POST"])
 def login():
     conn = sqlite3.connect("data.db")
@@ -106,7 +86,7 @@ def login():
             session["user"] = request.form["username"]
             return redirect("/dashboard")
 
-    return "Invalid login ❌"
+    return "Invalid Login"
 
 # ---------- LOGOUT ----------
 @app.route("/logout")
@@ -128,36 +108,24 @@ def dashboard():
     c.execute("SELECT folder_name FROM folders WHERE username=?", (session["user"],))
     folders = c.fetchall()
 
-    c.execute("""SELECT filename, message FROM posts
-                 WHERE username=? AND folder=?""",
+    c.execute("SELECT file_url, message FROM posts WHERE username=? AND folder=?",
               (session["user"], folder))
     posts = c.fetchall()
 
     conn.close()
 
-    # STORAGE CALC
-    total = 50 * 1024 * 1024
-    used = 0
-    for f in os.listdir(UPLOAD_FOLDER):
-        used += os.path.getsize(os.path.join(UPLOAD_FOLDER, f))
-
-    storage = int((used / total) * 100)
-
     return render_template("dashboard.html",
                            folders=folders,
                            posts=posts,
-                           current_folder=folder,
-                           storage=storage)
+                           current_folder=folder)
 
 # ---------- CREATE FOLDER ----------
 @app.route("/create_folder", methods=["POST"])
 def create_folder():
     conn = sqlite3.connect("data.db")
     c = conn.cursor()
-
     c.execute("INSERT INTO folders VALUES(NULL,?,?)",
               (session["user"], request.form["folder"]))
-
     conn.commit()
     conn.close()
     return redirect("/dashboard")
@@ -171,38 +139,28 @@ def upload():
     file = request.files["file"]
     folder = request.form["folder"]
 
-    filename = ""
-    if file and file.filename:
-        filename = str(int(time.time())) + "_" + file.filename
-        file.save(os.path.join(UPLOAD_FOLDER, filename))
+    url = ""
+    if file:
+        result = cloudinary.uploader.upload(file)
+        url = result["secure_url"]
 
     conn = sqlite3.connect("data.db")
     c = conn.cursor()
-
     c.execute("INSERT INTO posts VALUES(NULL,?,?,?,?,?)",
-              (session["user"], file.filename, filename, folder, time.time()))
-
+              (session["user"], file.filename, url, folder, time.time()))
     conn.commit()
     conn.close()
 
     return redirect(f"/dashboard?folder={folder}")
 
-# ---------- FILE SERVE ----------
-@app.route("/files/<filename>")
-def files(filename):
-    return send_from_directory(UPLOAD_FOLDER, filename)
-
 # ---------- DELETE ----------
-@app.route("/delete/<filename>", methods=["POST"])
-def delete(filename):
-    try:
-        os.remove(os.path.join(UPLOAD_FOLDER, filename))
-    except:
-        pass
+@app.route("/delete", methods=["POST"])
+def delete():
+    url = request.form["url"]
 
     conn = sqlite3.connect("data.db")
     c = conn.cursor()
-    c.execute("DELETE FROM posts WHERE filename=?", (filename,))
+    c.execute("DELETE FROM posts WHERE file_url=?", (url,))
     conn.commit()
     conn.close()
 
@@ -225,9 +183,6 @@ def rename():
 # ---------- ADMIN ----------
 @app.route("/admin")
 def admin():
-    if "user" not in session:
-        return redirect("/")
-
     conn = sqlite3.connect("data.db")
     c = conn.cursor()
 
@@ -237,35 +192,12 @@ def admin():
     c.execute("SELECT username, rating FROM ratings")
     ratings = c.fetchall()
 
-    c.execute("SELECT AVG(rating) FROM ratings")
-    avg = c.fetchone()[0] or 0
-
     conn.close()
 
     return render_template("admin.html",
                            users=users,
-                           ratings=ratings,
-                           avg=round(avg,2))
-
-# ---------- RATE ----------
-@app.route("/rate", methods=["POST"])
-def rate():
-    conn = sqlite3.connect("data.db")
-    c = conn.cursor()
-
-    c.execute("INSERT INTO ratings VALUES(NULL,?,?)",
-              (session["user"], request.form["rating"]))
-
-    conn.commit()
-    conn.close()
-    return redirect("/dashboard")
-
-# ---------- ERROR ----------
-@app.errorhandler(404)
-def not_found(e):
-    return redirect("/")
+                           ratings=ratings)
 
 # ---------- RUN ----------
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(debug=True)
