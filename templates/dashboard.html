@@ -41,6 +41,11 @@ body {font-family:Segoe UI;margin:0;background:#f1f3f4;}
 
 <div class="main">
 
+<form method="get" action="/dashboard">
+<input name="search" placeholder="Search..." value="{{search}}">
+<button>Search</button>
+</form>
+
 <div class="card">
 <form action="/upload" method="post" enctype="multipart/form-data">
 <input type="file" name="file">
@@ -59,7 +64,6 @@ body {font-family:Segoe UI;margin:0;background:#f1f3f4;}
 
 <span>
 <a href="{{p[0]}}" target="_blank">Open</a>
-
 <button onclick="copyLink('{{p[0]}}')">Share</button>
 
 <form action="/delete" method="post" style="display:inline;">
@@ -83,6 +87,20 @@ body {font-family:Segoe UI;margin:0;background:#f1f3f4;}
 {% endif %}
 
 {% endfor %}
+</div>
+
+<div class="card">
+<h3>Rate</h3>
+<form action="/rate" method="post">
+<select name="rating">
+<option value="5">★★★★★</option>
+<option value="4">★★★★</option>
+<option value="3">★★★</option>
+<option value="2">★★</option>
+<option value="1">★</option>
+</select>
+<button>Submit</button>
+</form>
 </div>
 
 </div>
