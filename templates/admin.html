@@ -1,39 +1,19 @@
-<!DOCTYPE html>
-<html>
-<head>
-<style>
-body {font-family:Segoe UI;background:#f1f3f4;padding:20px;}
-.card {background:white;padding:15px;margin-bottom:15px;border-radius:10px;}
-</style>
-</head>
-<body>
+<h2>Admin</h2>
 
-<h1>Admin Dashboard</h1>
+<p>Total Users: {{total}}</p>
+<p>Average Rating: {{avg}}</p>
+<p>Performance: {{percent}}%</p>
 
-<div class="card">Total Users: {{ total_users }}</div>
-
-<div class="card">
-Average Rating: ⭐ {{ avg }}/5  
-<br>Performance: {{ percent }}%
-</div>
-
-<div class="card">
 <h3>Users</h3>
 <ul>
 {% for u in users %}
 <li>{{u[0]}}</li>
 {% endfor %}
 </ul>
-</div>
 
-<div class="card">
 <h3>Ratings</h3>
 <ul>
 {% for r in ratings %}
-<li>{{r[0]}} → ⭐ {{r[1]}}</li>
+<li>{{r[0]}} → {{r[1]}}</li>
 {% endfor %}
 </ul>
-</div>
-
-</body>
-</html>
