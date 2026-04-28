@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, session
-import sqlite3, time, os   # ✅ os added here
+import sqlite3, time, os
 from werkzeug.security import generate_password_hash, check_password_hash
 import cloudinary
 import cloudinary.uploader
@@ -7,14 +7,14 @@ import cloudinary.uploader
 app = Flask(__name__)
 app.secret_key = "secretkey"
 
-# ---------- CLOUDINARY CONFIG ----------
+# CLOUDINARY CONFIG
 cloudinary.config(
     cloud_name="dpbsztgph",
     api_key="455596988582446",
-    api_secret="aS_7z1ZI_crrY_10i49lIpDutr0"
+    api_secret="YOUR_SECRET"
 )
 
-# ---------- DATABASE ----------
+# DATABASE INIT
 def init_db():
     conn = sqlite3.connect("data.db")
     c = conn.cursor()
@@ -29,7 +29,7 @@ def init_db():
 
 init_db()
 
-# ---------- ICON ----------
+# ICON
 def get_icon(name):
     if name.endswith((".png",".jpg",".jpeg")):
         return "🖼️"
@@ -41,12 +41,12 @@ def get_icon(name):
 
 app.jinja_env.globals.update(get_icon=get_icon)
 
-# ---------- HOME ----------
+# HOME
 @app.route("/")
 def home():
     return render_template("login.html")
 
-# ---------- REGISTER ----------
+# REGISTER
 @app.route("/register", methods=["GET","POST"])
 def register():
     if request.method == "POST":
@@ -63,7 +63,7 @@ def register():
         return redirect("/")
     return render_template("register.html")
 
-# ---------- LOGIN ----------
+# LOGIN
 @app.route("/login", methods=["POST"])
 def login():
     conn = sqlite3.connect("data.db")
@@ -88,19 +88,20 @@ def login():
 
     return "Invalid Login"
 
-# ---------- LOGOUT ----------
+# LOGOUT
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect("/")
 
-# ---------- DASHBOARD ----------
+# DASHBOARD
 @app.route("/dashboard")
 def dashboard():
     if "user" not in session:
         return redirect("/")
 
     folder = request.args.get("folder", "root")
+    search = request.args.get("search", "")
 
     conn = sqlite3.connect("data.db")
     c = conn.cursor()
@@ -108,18 +109,25 @@ def dashboard():
     c.execute("SELECT folder_name FROM folders WHERE username=?", (session["user"],))
     folders = c.fetchall()
 
-    c.execute("SELECT file_url, message FROM posts WHERE username=? AND folder=?",
-              (session["user"], folder))
-    posts = c.fetchall()
+    if search:
+        c.execute("""SELECT file_url, message FROM posts
+                     WHERE username=? AND message LIKE ?""",
+                  (session["user"], f"%{search}%"))
+    else:
+        c.execute("""SELECT file_url, message FROM posts
+                     WHERE username=? AND folder=?""",
+                  (session["user"], folder))
 
+    posts = c.fetchall()
     conn.close()
 
     return render_template("dashboard.html",
                            folders=folders,
                            posts=posts,
-                           current_folder=folder)
+                           current_folder=folder,
+                           search=search)
 
-# ---------- CREATE FOLDER ----------
+# CREATE FOLDER
 @app.route("/create_folder", methods=["POST"])
 def create_folder():
     conn = sqlite3.connect("data.db")
@@ -130,7 +138,7 @@ def create_folder():
     conn.close()
     return redirect("/dashboard")
 
-# ---------- UPLOAD ----------
+# UPLOAD
 @app.route("/upload", methods=["POST"])
 def upload():
     if "user" not in session:
@@ -153,7 +161,7 @@ def upload():
 
     return redirect(f"/dashboard?folder={folder}")
 
-# ---------- DELETE ----------
+# DELETE
 @app.route("/delete", methods=["POST"])
 def delete():
     url = request.form["url"]
@@ -166,7 +174,7 @@ def delete():
 
     return redirect("/dashboard")
 
-# ---------- RENAME ----------
+# RENAME
 @app.route("/rename", methods=["POST"])
 def rename():
     old = request.form["old"]
@@ -174,13 +182,25 @@ def rename():
 
     conn = sqlite3.connect("data.db")
     c = conn.cursor()
-    c.execute("UPDATE posts SET message=? WHERE message=?", (new, old))
+    c.execute("UPDATE posts SET message=? WHERE message=? AND username=?",
+              (new, old, session["user"]))
     conn.commit()
     conn.close()
 
     return redirect("/dashboard")
 
-# ---------- ADMIN ----------
+# RATE
+@app.route("/rate", methods=["POST"])
+def rate():
+    conn = sqlite3.connect("data.db")
+    c = conn.cursor()
+    c.execute("INSERT INTO ratings VALUES(NULL,?,?)",
+              (session["user"], request.form["rating"]))
+    conn.commit()
+    conn.close()
+    return redirect("/dashboard")
+
+# ADMIN
 @app.route("/admin")
 def admin():
     conn = sqlite3.connect("data.db")
@@ -197,6 +217,8 @@ def admin():
     return render_template("admin.html",
                            users=users,
                            ratings=ratings)
+
+
 
 # ---------- RUN ----------
 if __name__ == "__main__":
