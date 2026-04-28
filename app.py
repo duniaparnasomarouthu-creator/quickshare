@@ -1,14 +1,15 @@
-from flask import Flask, render_template, request, redirect, session
+from flask import Flask, render_template, request, redirect, session, send_from_directory
 import sqlite3, os, time
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
 
-UPLOAD_FOLDER = "static/uploads"
+# ✅ USE TEMP STORAGE (NO STATIC)
+UPLOAD_FOLDER = "/tmp/uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# -------- DB INIT --------
+# -------- DATABASE --------
 def init_db():
     conn = sqlite3.connect("data.db")
     c = conn.cursor()
@@ -19,10 +20,15 @@ def init_db():
         password TEXT
     )""")
 
-    try:
-        c.execute("ALTER TABLE posts ADD COLUMN folder TEXT DEFAULT 'root'")
-    except:
-        pass
+    c.execute("""CREATE TABLE IF NOT EXISTS posts (
+        id INTEGER PRIMARY KEY,
+        username TEXT,
+        message TEXT,
+        filename TEXT,
+        folder TEXT,
+        size INTEGER,
+        time TEXT
+    )""")
 
     c.execute("""CREATE TABLE IF NOT EXISTS folders (
         id INTEGER PRIMARY KEY,
@@ -59,11 +65,10 @@ def register():
                        generate_password_hash(request.form["password"])))
             conn.commit()
         except:
-            return "User exists ❌"
+            return "User already exists ❌"
 
         conn.close()
         return redirect("/")
-
     return render_template("register.html")
 
 # -------- LOGIN --------
@@ -75,6 +80,7 @@ def login():
     c.execute("SELECT password FROM users WHERE username=?",
               (request.form["username"],))
     user = c.fetchone()
+    conn.close()
 
     if user and check_password_hash(user[0], request.form["password"]):
         session["user"] = request.form["username"]
@@ -107,7 +113,6 @@ def dashboard():
     FROM posts
     WHERE username=? AND (folder=? OR folder IS NULL)
     """, (session["user"], folder))
-
     posts = c.fetchall()
 
     conn.close()
@@ -116,6 +121,19 @@ def dashboard():
                            folders=folders,
                            posts=posts,
                            current_folder=folder)
+
+# -------- CREATE FOLDER --------
+@app.route("/create_folder", methods=["POST"])
+def create_folder():
+    conn = sqlite3.connect("data.db")
+    c = conn.cursor()
+
+    c.execute("INSERT INTO folders VALUES(NULL,?,?)",
+              (session["user"], request.form["folder"]))
+
+    conn.commit()
+    conn.close()
+    return redirect("/dashboard")
 
 # -------- UPLOAD --------
 @app.route("/upload", methods=["POST"])
@@ -128,6 +146,7 @@ def upload():
     folder = request.form["folder"]
 
     filename = ""
+
     if file and file.filename:
         filename = str(int(time.time())) + "_" + file.filename
         file.save(os.path.join(UPLOAD_FOLDER, filename))
@@ -142,6 +161,24 @@ def upload():
     conn.close()
 
     return redirect(f"/dashboard?folder={folder}")
+
+# -------- SERVE FILE --------
+@app.route("/files/<filename>")
+def files(filename):
+    return send_from_directory(UPLOAD_FOLDER, filename)
+
+# -------- RATE --------
+@app.route("/rate", methods=["POST"])
+def rate():
+    conn = sqlite3.connect("data.db")
+    c = conn.cursor()
+
+    c.execute("INSERT INTO ratings VALUES(NULL,?,?)",
+              (session["user"], request.form["rating"]))
+
+    conn.commit()
+    conn.close()
+    return redirect("/dashboard")
 
 # -------- ADMIN --------
 @app.route("/admin")
@@ -160,13 +197,16 @@ def admin():
     c.execute("SELECT AVG(rating) FROM ratings")
     avg = c.fetchone()[0] or 0
 
+    percent = round((avg/5)*100,2) if avg else 0
+
     conn.close()
 
     return render_template("admin.html",
                            users=users,
                            ratings=ratings,
                            total=total,
-                           avg=round(avg,2))
+                           avg=round(avg,2),
+                           percent=percent)
 
 # -------- ERROR --------
 @app.errorhandler(404)
