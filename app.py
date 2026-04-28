@@ -8,20 +8,18 @@ app.secret_key = "secret"
 UPLOAD_FOLDER = "static/uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# -------- DB (SAFE UPDATE, KEEP OLD DATA) --------
+# -------- DB INIT (SAFE FOR OLD DATA) --------
 def init_db():
     conn = sqlite3.connect("data.db")
     c = conn.cursor()
 
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS users (
+    c.execute("""CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE,
         password TEXT
-    )
-    """)
+    )""")
 
-    # ADD columns safely (won't delete old data)
+    # Add columns safely
     try:
         c.execute("ALTER TABLE posts ADD COLUMN folder TEXT DEFAULT 'root'")
     except:
@@ -32,21 +30,17 @@ def init_db():
     except:
         pass
 
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS folders (
+    c.execute("""CREATE TABLE IF NOT EXISTS folders (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT,
         folder_name TEXT
-    )
-    """)
+    )""")
 
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS ratings (
+    c.execute("""CREATE TABLE IF NOT EXISTS ratings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT,
         rating INTEGER
-    )
-    """)
+    )""")
 
     conn.commit()
     conn.close()
@@ -58,14 +52,35 @@ init_db()
 def home():
     return render_template("login.html")
 
+# -------- REGISTER --------
+@app.route("/register", methods=["GET","POST"])
+def register():
+    if request.method == "POST":
+        conn = sqlite3.connect("data.db")
+        c = conn.cursor()
+
+        try:
+            c.execute("INSERT INTO users VALUES(NULL,?,?)",
+                      (request.form["username"],
+                       generate_password_hash(request.form["password"])))
+            conn.commit()
+        except:
+            return "User already exists ❌"
+
+        conn.close()
+        return redirect("/")
+    return render_template("register.html")
+
 # -------- LOGIN --------
 @app.route("/login", methods=["POST"])
 def login():
     conn = sqlite3.connect("data.db")
     c = conn.cursor()
 
-    c.execute("SELECT password FROM users WHERE username=?", (request.form["username"],))
+    c.execute("SELECT password FROM users WHERE username=?",
+              (request.form["username"],))
     user = c.fetchone()
+    conn.close()
 
     if user and check_password_hash(user[0], request.form["password"]):
         session["user"] = request.form["username"]
@@ -90,7 +105,8 @@ def dashboard():
     conn = sqlite3.connect("data.db")
     c = conn.cursor()
 
-    c.execute("SELECT folder_name FROM folders WHERE username=?", (session["user"],))
+    c.execute("SELECT folder_name FROM folders WHERE username=?",
+              (session["user"],))
     folders = c.fetchall()
 
     c.execute("""
@@ -106,92 +122,6 @@ def dashboard():
                            folders=folders,
                            posts=posts,
                            current_folder=current_folder)
-
-# -------- CREATE FOLDER --------
-@app.route("/create_folder", methods=["POST"])
-def create_folder():
-    conn = sqlite3.connect("data.db")
-    c = conn.cursor()
-
-    c.execute("INSERT INTO folders VALUES(NULL,?,?)",
-              (session["user"], request.form["folder"]))
-
-    conn.commit()
-    conn.close()
-
-    return redirect("/dashboard")
-
-# -------- DELETE FOLDER --------
-@app.route("/delete_folder/<name>")
-def delete_folder(name):
-    conn = sqlite3.connect("data.db")
-    c = conn.cursor()
-
-    c.execute("DELETE FROM folders WHERE folder_name=? AND username=?",
-              (name, session["user"]))
-
-    conn.commit()
-    conn.close()
-
-    return redirect("/dashboard")
-
-# -------- RENAME FOLDER --------
-@app.route("/rename_folder", methods=["POST"])
-def rename():
-    old = request.form["old"]
-    new = request.form["new"]
-
-    conn = sqlite3.connect("data.db")
-    c = conn.cursor()
-
-    c.execute("UPDATE folders SET folder_name=? WHERE folder_name=? AND username=?",
-              (new, old, session["user"]))
-
-    c.execute("UPDATE posts SET folder=? WHERE folder=? AND username=?",
-              (new, old, session["user"]))
-
-    conn.commit()
-    conn.close()
-
-    return redirect("/dashboard")
-
-# -------- UPLOAD --------
-@app.route("/upload", methods=["POST"])
-def upload():
-    file = request.files["file"]
-    message = request.form["message"]
-    folder = request.form["folder"]
-
-    filename = ""
-
-    if file and file.filename:
-        filename = str(int(time.time())) + "_" + file.filename
-        file.save(os.path.join(UPLOAD_FOLDER, filename))
-
-    conn = sqlite3.connect("data.db")
-    c = conn.cursor()
-
-    c.execute("INSERT INTO posts VALUES(NULL,?,?,?,?,?,?)",
-              (session["user"], message, filename, folder, 0, time.time()))
-
-    conn.commit()
-    conn.close()
-
-    return redirect(f"/dashboard?folder={folder}")
-
-# -------- RATE --------
-@app.route("/rate", methods=["POST"])
-def rate():
-    conn = sqlite3.connect("data.db")
-    c = conn.cursor()
-
-    c.execute("INSERT INTO ratings VALUES(NULL,?,?)",
-              (session["user"], request.form["rating"]))
-
-    conn.commit()
-    conn.close()
-
-    return redirect("/dashboard")
 
 # -------- ADMIN --------
 @app.route("/admin")
@@ -210,7 +140,7 @@ def admin():
     c.execute("SELECT AVG(rating) FROM ratings")
     avg = c.fetchone()[0] or 0
 
-    percent = round((avg / 5) * 100, 2) if avg else 0
+    percent = round((avg/5)*100,2) if avg else 0
 
     conn.close()
 
@@ -221,9 +151,12 @@ def admin():
                            avg=round(avg,2),
                            percent=percent)
 
-# -------- RUN --------
-import os
+# -------- ERROR FIX --------
+@app.errorhandler(404)
+def not_found(e):
+    return redirect("/")
 
+# -------- RUN (IMPORTANT FOR RENDER) --------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
