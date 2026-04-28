@@ -1,0 +1,36 @@
+body {
+    margin:0;
+    font-family:Segoe UI;
+    background:#f1f3f4;
+}
+
+.header {
+    background:#202124;
+    color:white;
+    padding:15px;
+    display:flex;
+    justify-content:space-between;
+}
+
+.sidebar {
+    width:240px;
+    background:white;
+    height:100vh;
+    padding:15px;
+}
+
+.main {
+    padding:20px;
+    flex:1;
+}
+
+.container {
+    display:flex;
+}
+
+.card {
+    background:white;
+    padding:10px;
+    border-radius:10px;
+    margin:10px;
+}
